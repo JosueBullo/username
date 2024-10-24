@@ -1,4 +1,3 @@
-// src/components/AdminProductPage.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminProductPage.css'; // Your CSS file for styling
@@ -10,12 +9,13 @@ const AdminProductPage = () => {
         description: '',
         price: '',
         category: '',
-        imageUrl: ''
+        image: null  // This will hold the image file
     });
     const [editingProductId, setEditingProductId] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
 
+    // Fetch products from the backend
     useEffect(() => {
-        // Fetch all products when the component mounts
         const fetchProducts = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/api/products');
@@ -26,47 +26,64 @@ const AdminProductPage = () => {
         };
 
         fetchProducts();
-    }, []); // Empty dependency array ensures this runs once on mount
+    }, []);
 
-    // Handle form submission for adding/updating products
+    // Handle form submit for adding or updating products
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage('');  // Clear any previous errors
 
-        const productData = {
-            name: formData.name,
-            description: formData.description,
-            price: parseFloat(formData.price), // Ensure price is a number
-            category: formData.category,
-            imageUrl: formData.imageUrl
-        };
+        // Frontend validation to ensure required fields are not empty
+        if (!formData.name || !formData.description || !formData.price || !formData.category || !formData.image) {
+            setErrorMessage('Please fill in all the fields, including an image.');
+            return;
+        }
+
+        // Create FormData object for file upload
+        const productData = new FormData();
+        productData.append('name', formData.name);
+        productData.append('description', formData.description);
+        productData.append('price', formData.price);
+        productData.append('category', formData.category);
+        productData.append('image', formData.image); // append the image file
 
         try {
             if (editingProductId) {
                 // Update existing product
-                await axios.put(`http://localhost:5000/api/products/${editingProductId}`, productData);
+                await axios.put(`http://localhost:5000/api/products/${editingProductId}`, productData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 setProducts(products.map((product) =>
-                    product._id === editingProductId ? { ...product, ...productData } : product
+                    product._id === editingProductId ? { ...product, ...formData } : product
                 ));
                 setEditingProductId(null);
             } else {
                 // Add new product
-                const response = await axios.post('http://localhost:5000/api/products', productData);
-                setProducts([...products, response.data.product]); // Ensure your backend sends back the newly created product
+                const response = await axios.post('http://localhost:5000/api/products', productData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                setProducts([...products, response.data.product]);
             }
-            // Clear the form after submission
-            setFormData({ name: '', description: '', price: '', category: '', imageUrl: '' });
+            setFormData({ name: '', description: '', price: '', category: '', image: null });
         } catch (error) {
             console.error('Error adding/updating product:', error.response ? error.response.data : error.message);
+            setErrorMessage(error.response ? error.response.data.message : 'Error adding/updating product.');
         }
     };
 
-    // Handle product editing
+    // Edit product function
     const handleEdit = (product) => {
         setEditingProductId(product._id);
-        setFormData(product); // Set formData to the selected product's data for editing
+        setFormData({
+            name: product.name,
+            description: product.description,
+            price: product.price.toString(), // Ensure price is a string to handle input correctly
+            category: product.category,
+            image: null  // You would need to upload a new image when editing
+        });
     };
 
-    // Handle product deletion
+    // Delete product function
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
@@ -79,21 +96,28 @@ const AdminProductPage = () => {
     };
 
     return (
-        <div className="admin-product-page">
+        <div className="admin-product-page container">
             <h2>Manage Products</h2>
-            <form onSubmit={handleSubmit}>
+
+            {/* Error Message */}
+            {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+
+            {/* Form to add or edit products */}
+            <form onSubmit={handleSubmit} className="mb-4">
                 <input
                     type="text"
                     placeholder="Product Name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    className="form-control mb-2"
                 />
                 <textarea
                     placeholder="Description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     required
+                    className="form-control mb-2"
                 />
                 <input
                     type="number"
@@ -101,6 +125,7 @@ const AdminProductPage = () => {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     required
+                    className="form-control mb-2"
                 />
                 <input
                     type="text"
@@ -108,35 +133,59 @@ const AdminProductPage = () => {
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     required
+                    className="form-control mb-2"
                 />
                 <input
-                    type="text"
-                    placeholder="Image URL"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    type="file"
+                    onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
                     required
+                    className="form-control mb-2"
                 />
-                <button type="submit">{editingProductId ? 'Update Product' : 'Add Product'}</button>
+                <button type="submit" className="btn btn-primary">
+                    {editingProductId ? 'Update Product' : 'Add Product'}
+                </button>
             </form>
 
+            {/* Display list of products */}
             <div className="product-list">
                 <h3>Product List</h3>
-                <ul>
-                    {products.map((product) => (
-                        <li key={product._id}>
-                            <h4>{product.name}</h4>
-                            <p>{product.description}</p>
-                            <p>Price: ${product.price.toFixed(2)}</p>
-                            <p>Category: {product.category}</p>
-                            <img src={product.imageUrl} alt={product.name} />
-                            <button onClick={() => handleEdit(product)}>Edit</button>
-                            <button onClick={() => handleDelete(product._id)}>Delete</button>
-                        </li>
-                    ))}
-                </ul>
+                <table className="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Category</th>
+                            <th>Image</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {products.map((product) => (
+                            <tr key={product._id}>
+                                <td>{product.name}</td>
+                                <td>{product.description}</td>
+                                <td>${product.price.toFixed(2)}</td>
+                                <td>{product.category}</td>
+                                <td>
+                                    <img src={`http://localhost:5000/${product.imageUrl}`} alt={product.name} className="img-thumbnail" style={{ width: '50px' }} />
+                                </td>
+                                <td>
+                                    <button onClick={() => handleEdit(product)} className="btn btn-warning me-2">
+                                        Edit
+                                    </button>
+                                    <button onClick={() => handleDelete(product._id)} className="btn btn-danger">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 };
 
 export default AdminProductPage;
+                    

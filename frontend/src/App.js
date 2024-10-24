@@ -1,4 +1,3 @@
-// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './components/HomePage'; // Import HomePage component
@@ -7,6 +6,7 @@ import AdminPage from './components/AdminPage'; // Import AdminPage for admin ov
 import AdminProductPage from './components/AdminProductPage'; // Import AdminProductPage for managing products
 import Register from './components/Register'; // Import Register component
 import Login from './components/Login'; // Import Login component
+import UserPage from './components/UserPage'; // Import UserPage component
 
 const App = () => {
     return (
@@ -20,6 +20,7 @@ const App = () => {
                 </Route>
                 <Route path="/register" element={<Register />} /> {/* Register route */}
                 <Route path="/login" element={<Login />} /> {/* Login route */}
+                <Route path="/user" element={<UserPage />} /> {/* User page route */}
             </Routes>
         </Router>
     );

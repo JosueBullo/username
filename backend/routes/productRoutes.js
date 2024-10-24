@@ -17,19 +17,16 @@ router.delete('/:id', productController.deleteProduct);
 module.exports = router;*/
 const express = require('express');
 const router = express.Router();
-const {
-  createProduct,
-  getAllProducts,
-  updateProduct,
-  deleteProduct
-} = require('../controllers/productController');
+const { createProduct, getAllProducts, updateProduct, deleteProduct } = require('../controllers/productController');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Set up multer for file uploads
 
-
-// Define your routes
-router.post('/products', createProduct); // Create a new product
-router.get('/products', getAllProducts); // Get all products
-router.put('/products:id', updateProduct); // Update a product
-router.delete('/products:id', deleteProduct); // Delete a product
+// Define routes
+router.post('/', upload.single('image'), createProduct); // Correct POST route with file upload middleware
+router.get('/', getAllProducts);
+router.put('/:id', updateProduct);
+router.delete('/:id', deleteProduct);
 
 module.exports = router;
+
 

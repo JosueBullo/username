@@ -14,3 +14,4 @@ export const loginUser = async (userData) => {
     const response = await axios.post('http://localhost:5000/api/auth/login', userData);
     return response.data; // Return the response data
 };
+johnlawrence
